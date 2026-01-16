@@ -1,0 +1,65 @@
+.trash-page {
+  min-height: 100vh;
+}
+
+.trash-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.trash-header h1 {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.trash-list {
+  padding: 24px;
+}
+
+.trash-hint {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+.trash-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+}
+
+.trash-item:hover {
+  border-color: var(--border-hover);
+}
+
+.trash-item-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.trash-item-name {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.trash-item-expire {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 4px 8px;
+  background-color: var(--bg-surface);
+  border-radius: var(--radius-sm);
+}
+
+.trash-item-actions {
+  display: flex;
+  gap: 8px;
+}

@@ -1,0 +1,10 @@
+.detail-page {
+  margin-left: 0;
+  padding-top: var(--header-height);
+  min-height: 100vh;
+}
+
+.detail-wrapper {
+  max-width: 900px;
+  margin: 0 auto;
+}
