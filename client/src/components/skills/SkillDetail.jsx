@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { getSkill, toggleStar, updateSkillTags, regenerateTags, deleteSkill } from '../../services/api';
 import TagBadge from '../common/TagBadge';
+import FileExplorer from '../files/FileExplorer';
 import './SkillDetail.css';
 
 export default function SkillDetail() {
@@ -157,19 +158,7 @@ export default function SkillDetail() {
       </div>
 
       {skill.files && skill.files.length > 1 && (
-        <div className="detail-files">
-          <h3>文件列表</h3>
-          <ul className="file-tree">
-            {skill.files.map(file => (
-              <li key={file} className="file-tree-item">
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <path d="M3 1H9L12 4V13H3V1Z" stroke="currentColor" strokeWidth="1"/>
-                </svg>
-                {file}
-              </li>
-            ))}
-          </ul>
-        </div>
+        <FileExplorer files={skill.files} skillId={skill.id} />
       )}
 
       <div className="detail-content">

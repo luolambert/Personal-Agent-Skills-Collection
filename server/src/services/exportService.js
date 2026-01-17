@@ -3,7 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import AdmZip from 'adm-zip';
-import { readDB } from './fileService.js';
+import { readDB, isMacHiddenFile } from './fileService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -32,6 +32,7 @@ function addFolderToZip(zip, folderPath, zipFolderName) {
   const items = fs.readdirSync(folderPath);
   
   for (const item of items) {
+    if (isMacHiddenFile(item)) continue;
     const fullPath = path.join(folderPath, item);
     const zipPath = path.join(zipFolderName, item);
     

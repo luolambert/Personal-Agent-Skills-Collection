@@ -29,6 +29,7 @@
   display: flex;
   align-items: center;
   cursor: pointer;
+  margin-left: auto;
 }
 
 .skill-checkbox input {
@@ -69,7 +70,6 @@
   color: var(--text-muted);
   cursor: pointer;
   border-radius: var(--radius-sm);
-  margin-left: auto;
   transition: all var(--transition-fast);
 }
 

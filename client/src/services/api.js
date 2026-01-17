@@ -126,3 +126,9 @@ export async function permanentDelete(id) {
   });
   return response.json();
 }
+
+export async function getSkillFile(skillId, filePath) {
+  const response = await fetch(`${API_BASE}/skills/${skillId}/file?path=${encodeURIComponent(filePath)}`);
+  if (!response.ok) return null;
+  return response.json();
+}

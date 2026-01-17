@@ -6,8 +6,7 @@ export default function SkillCard({
   skill, 
   selected, 
   onSelect, 
-  onStar,
-  selectionMode 
+  onStar 
 }) {
   const handleCheckboxClick = (e) => {
     e.preventDefault();
@@ -24,16 +23,6 @@ export default function SkillCard({
   return (
     <Link to={`/skill/${skill.id}`} className="skill-card">
       <div className="skill-card-header">
-        {selectionMode && (
-          <label className="skill-checkbox" onClick={handleCheckboxClick}>
-            <input 
-              type="checkbox" 
-              checked={selected}
-              onChange={() => {}}
-            />
-            <span className="checkbox-mark"></span>
-          </label>
-        )}
         <button 
           className={`skill-star ${skill.starred ? 'starred' : ''}`}
           onClick={handleStarClick}
@@ -48,6 +37,14 @@ export default function SkillCard({
             />
           </svg>
         </button>
+        <label className="skill-checkbox" onClick={handleCheckboxClick}>
+          <input 
+            type="checkbox" 
+            checked={selected}
+            onChange={() => {}}
+          />
+          <span className="checkbox-mark"></span>
+        </label>
       </div>
       
       <div className="skill-card-body">

@@ -1,6 +1,6 @@
 import express from 'express';
 import multer from 'multer';
-import { processUploadedFile, readDB, writeDB, getSkillContent, createSkillFromContent } from '../services/fileService.js';
+import { processUploadedFile, readDB, writeDB, getSkillContent, createSkillFromContent, getFileContent } from '../services/fileService.js';
 import { generateTags, updateTagsFile } from '../services/llmService.js';
 import { moveToTrash } from '../services/trashService.js';
 import { exportSkills } from '../services/exportService.js';
@@ -21,9 +21,11 @@ router.post('/upload', upload.array('files'), async (req, res) => {
     for (const file of files) {
       const skillData = await processUploadedFile(file);
       
+      const skillContent = getSkillContent(skillData.id);
       const tags = await generateTags({
         name: skillData.name,
-        description: skillData.description
+        description: skillData.description,
+        contentPreview: skillContent?.content || ''
       });
       
       skillData.tags = tags;
@@ -168,9 +170,11 @@ router.post('/:id/regenerate-tags', async (req, res) => {
       return res.status(404).json({ error: 'Skill not found' });
     }
     
+    const skillContent = getSkillContent(skill.id);
     const tags = await generateTags({
       name: skill.name,
-      description: skill.description
+      description: skill.description,
+      contentPreview: skillContent?.content || ''
     });
     
     skill.tags = tags;
@@ -216,6 +220,25 @@ router.post('/export', (req, res) => {
   } catch (error) {
     console.error('Export error:', error);
     res.status(500).json({ error: 'Failed to export skills' });
+  }
+});
+
+router.get('/:id/file', (req, res) => {
+  try {
+    const { path: filePath } = req.query;
+    if (!filePath) {
+      return res.status(400).json({ error: 'File path required' });
+    }
+    
+    const file = getFileContent(req.params.id, filePath);
+    if (!file) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+    
+    res.json(file);
+  } catch (error) {
+    console.error('Get file error:', error);
+    res.status(500).json({ error: 'Failed to get file' });
   }
 });
 

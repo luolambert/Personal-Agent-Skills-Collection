@@ -3,6 +3,20 @@ import Modal from '../common/Modal';
 import { uploadSkills } from '../../services/api';
 import './UploadZone.css';
 
+const isMacHiddenFile = (filename) => {
+  const hiddenPatterns = [
+    /^\.DS_Store$/,
+    /^\._/,
+    /^\.Spotlight-/,
+    /^\.Trashes$/,
+    /^\.fseventsd$/,
+    /^\.TemporaryItems$/,
+    /^\.DocumentRevisions-/,
+    /^__MACOSX$/,
+  ];
+  return hiddenPatterns.some(pattern => pattern.test(filename));
+};
+
 export default function UploadModal({ onClose, onSuccess }) {
   const [mode, setMode] = useState('upload');
   const [files, setFiles] = useState([]);
@@ -19,7 +33,8 @@ export default function UploadModal({ onClose, onSuccess }) {
   const handleDrop = (e) => {
     e.preventDefault();
     const droppedFiles = Array.from(e.dataTransfer.files).filter(
-      f => f.name.endsWith('.md') || f.name.endsWith('.skill') || f.name.endsWith('.zip')
+      f => !isMacHiddenFile(f.name) && 
+           (f.name.endsWith('.md') || f.name.endsWith('.skill') || f.name.endsWith('.zip'))
     );
     setFiles(prev => [...prev, ...droppedFiles]);
   };
@@ -29,7 +44,9 @@ export default function UploadModal({ onClose, onSuccess }) {
   };
 
   const handleFileSelect = (e) => {
-    const selectedFiles = Array.from(e.target.files);
+    const selectedFiles = Array.from(e.target.files).filter(
+      f => !isMacHiddenFile(f.name)
+    );
     setFiles(prev => [...prev, ...selectedFiles]);
   };
 

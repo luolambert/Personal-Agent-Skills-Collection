@@ -30,16 +30,41 @@ export async function generateTags(skillInfo) {
     return [];
   }
   
-  const prompt = `请为这个 Skill 生成 3-5 个中文标签。
-查看现有标签，看是否有相匹配的，避免创建与现有标签意思相近的标签。
+  const prompt = `# 任务：为 AI Agent Skill 生成精准标签
 
-现有标签: ${existingTags.join(', ') || '暂无'}
+## 什么是 Skills？
+Skills 是 AI 编程助手（如 Claude Code、Antigravity）的模块化能力扩展。每个 Skill 是一个结构化的专业知识包，包含：
+- **name**: 动词+名词命名（如 applying-code-standards）
+- **description**: 触发条件描述，告诉 Agent 何时加载此 Skill
+- **内容**: 决策流程、操作指南、子文档路由、完成标准检查清单
 
-Skill 名称: ${skillInfo.name}
-Skill 描述: ${skillInfo.description || '无描述'}
-${skillInfo.contentPreview ? `内容预览: ${skillInfo.contentPreview.slice(0, 300)}` : ''}
+## 标签要求
+1. **功能导向**：标签应描述此 Skill 帮助 Agent 完成什么任务（如：代码规范、动画实现、项目架构）
+2. **场景导向**：标签应描述何时会用到此 Skill（如：代码审查、重构、新项目创建）
+3. **技术栈**：如涉及特定技术，应标注（如：React、GSAP、Node.js）
+4. **精准优先**：优先使用能精确描述此 Skill 独特价值的标签
 
-返回格式: ["标签1", "标签2", "标签3"]
+## 标签规范
+- 2-6 个汉字
+- 避免过于宽泛的标签（如"开发"、"编程"）
+- 避免与现有标签语义重复
+
+## 现有标签库
+${existingTags.length > 0 ? existingTags.join('、') : '暂无'}
+
+## 待分析的 Skill
+
+**名称**: ${skillInfo.name}
+**描述**: ${skillInfo.description || '无描述'}
+
+**完整内容**:
+\`\`\`markdown
+${skillInfo.contentPreview || '无内容'}
+\`\`\`
+
+## 输出
+返回 3-5 个最能精准描述此 Skill 的中文标签。
+格式: ["标签1", "标签2", "标签3"]
 只返回 JSON 数组，不要其他内容。`;
 
   try {

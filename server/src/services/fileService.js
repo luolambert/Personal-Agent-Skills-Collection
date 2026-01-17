@@ -6,6 +6,22 @@ import AdmZip from 'adm-zip';
 import matter from 'gray-matter';
 import { v4 as uuidv4 } from 'uuid';
 
+const MAC_HIDDEN_PATTERNS = [
+  /^\.DS_Store$/,
+  /^\._/,
+  /^\.Spotlight-/,
+  /^\.Trashes$/,
+  /^\.fseventsd$/,
+  /^\.TemporaryItems$/,
+  /^\.DocumentRevisions-/,
+  /^__MACOSX$/,
+];
+
+export function isMacHiddenFile(filename) {
+  const basename = path.basename(filename);
+  return MAC_HIDDEN_PATTERNS.some(pattern => pattern.test(basename));
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -61,7 +77,15 @@ export async function processUploadedFile(file) {
     
   } else if (ext === '.skill' || ext === '.zip') {
     const zip = new AdmZip(file.buffer);
-    zip.extractAllTo(skillDir, true);
+    const entries = zip.getEntries();
+    for (const entry of entries) {
+      const entryName = entry.entryName;
+      const pathParts = entryName.split(/[\/\\]/);
+      const hasHiddenPart = pathParts.some(part => isMacHiddenFile(part));
+      if (!hasHiddenPart && !entry.isDirectory) {
+        zip.extractEntryTo(entry, skillDir, true, true);
+      }
+    }
     
     const skillMdPath = path.join(skillDir, 'SKILL.md');
     if (fs.existsSync(skillMdPath)) {
@@ -114,6 +138,7 @@ export function getSkillContent(skillId) {
 function getAllFiles(dir, baseDir, fileList = []) {
   const items = fs.readdirSync(dir);
   for (const item of items) {
+    if (isMacHiddenFile(item)) continue;
     const fullPath = path.join(dir, item);
     const relativePath = path.relative(baseDir, fullPath);
     if (fs.statSync(fullPath).isDirectory()) {
@@ -161,5 +186,34 @@ ${content || ''}
     deleted: false,
     deletedAt: null,
     createdAt: new Date().toISOString()
+  };
+}
+
+export function getFileContent(skillId, filePath) {
+  const skillDir = path.join(SKILLS_DIR, skillId);
+  const fullPath = path.join(skillDir, filePath);
+  
+  const resolvedPath = path.resolve(fullPath);
+  const resolvedSkillDir = path.resolve(skillDir);
+  if (!resolvedPath.startsWith(resolvedSkillDir)) {
+    throw new Error('Invalid file path');
+  }
+  
+  if (!fs.existsSync(fullPath)) {
+    return null;
+  }
+  
+  const stat = fs.statSync(fullPath);
+  if (stat.isDirectory()) {
+    return null;
+  }
+  
+  const content = fs.readFileSync(fullPath, 'utf-8');
+  const ext = path.extname(filePath).toLowerCase();
+  
+  return {
+    content,
+    ext,
+    name: path.basename(filePath)
   };
 }

@@ -11,7 +11,6 @@ export default function HomePage() {
   const { skills, loading, filters, setFilters, refetch } = useSkills();
   const { tags, refetch: refetchTags } = useTags();
   const [selectedIds, setSelectedIds] = useState([]);
-  const [selectionMode, setSelectionMode] = useState(false);
 
   const filteredSkills = useMemo(() => {
     if (!filters.starred) return skills;
@@ -64,7 +63,6 @@ export default function HomePage() {
       await deleteSkill(id);
     }
     setSelectedIds([]);
-    setSelectionMode(false);
     refetch();
   };
 
@@ -92,21 +90,9 @@ export default function HomePage() {
             value={filters.search} 
             onChange={handleSearch}
           />
-          
-          <div className="content-actions">
-            <button 
-              className={`btn btn-secondary btn-sm ${selectionMode ? 'active' : ''}`}
-              onClick={() => {
-                setSelectionMode(!selectionMode);
-                setSelectedIds([]);
-              }}
-            >
-              {selectionMode ? '取消选择' : '批量操作'}
-            </button>
-          </div>
         </div>
 
-        {selectionMode && (
+        {selectedIds.length > 0 && (
           <div className="batch-actions">
             <label className="batch-select-all">
               <input 
@@ -119,16 +105,20 @@ export default function HomePage() {
             
             <div className="batch-buttons">
               <button 
+                className="btn btn-ghost btn-sm"
+                onClick={() => setSelectedIds([])}
+              >
+                取消选择
+              </button>
+              <button 
                 className="btn btn-primary btn-sm"
                 onClick={handleExport}
-                disabled={selectedIds.length === 0}
               >
                 导出选中
               </button>
               <button 
                 className="btn btn-danger btn-sm"
                 onClick={handleBatchDelete}
-                disabled={selectedIds.length === 0}
               >
                 删除选中
               </button>
@@ -156,7 +146,6 @@ export default function HomePage() {
                 selected={selectedIds.includes(skill.id)}
                 onSelect={handleSelect}
                 onStar={handleStar}
-                selectionMode={selectionMode}
               />
             ))}
           </div>
