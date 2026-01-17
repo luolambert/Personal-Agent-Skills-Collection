@@ -1,105 +1,210 @@
-# Lambert's Skills Collection
+# 🧠 Agent Skills Collection
 
-<p align="center">
-  <strong>🧩 个人 AI Agent Skills 收集管理工具</strong>
-</p>
+[🇺🇸 English](README.md) / [🇨🇳 中文](README_zh.md)
 
-<p align="center">
-  <a href="#功能特性">功能</a> •
-  <a href="#快速开始">快速开始</a> •
-  <a href="#配置说明">配置</a> •
-  <a href="#技术栈">技术栈</a>
-</p>
+<div align="center">
+
+**Your personal AI Agent Skills management hub — One collection, all your coding assistants.**
+
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-7-646CFF?style=flat-square&logo=vite)](https://vite.dev/)
+[![Express](https://img.shields.io/badge/Express-4.18-000000?style=flat-square&logo=express)](https://expressjs.com/)
+[![Supabase](https://img.shields.io/badge/Supabase-Backend-3FCF8E?style=flat-square&logo=supabase)](https://supabase.com/)
+[![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
+
+</div>
 
 ---
 
-## 功能特性
+## 💡 Why This Project?
 
-- 📁 **一键上传** - 支持 `.md`、`.skill`、`.zip` 文件，自动解压处理
-- 🏷️ **AI 智能标签** - 连接本地 LLM 自动生成中文标签
-- 🔍 **全文搜索** - 搜索名称、描述和内容
-- ⭐ **收藏管理** - 星标重要的 Skills
-- 📦 **批量导出** - 勾选多个 Skills 打包下载
-- 🗑️ **回收站** - 误删恢复，30 天后自动清理
-- ✏️ **在线编辑** - 直接创建新的 Markdown 文档
+Modern developers often juggle multiple AI-powered coding assistants — Claude Code, Cursor, Windsurf, Antigravity, and more. Each tool requires its own Skills configuration, leading to:
 
-## 快速开始
+- **Fragmented management**: Skills scattered across different tools with no unified view
+- **Repetitive setup**: Configuring the same Skills repeatedly for each new tool
+- **Token waste**: Accumulating too many Skills without proper curation bloats context and wastes tokens
 
-### 1. 克隆项目
+**Agent Skills Collection** solves this by providing a centralized, web-based hub to manage all your AI Agent Skills in one place. Curate once, export anywhere.
 
-```bash
-git clone https://github.com/your-username/skills-collection.git
-cd skills-collection
+---
+
+## 📑 Table of Contents
+
+- [Features](#-features)
+- [Tech Stack](#-tech-stack)
+- [Project Structure](#-project-structure)
+- [Quick Start](#-quick-start)
+- [Configuration](#-configuration)
+- [Roadmap](#-roadmap)
+- [Contributing](#-contributing)
+- [License](#-license)
+
+---
+
+## ✨ Features
+
+### 📂 Skill Management
+
+- **Upload & Organize** — Import `.md` files or `.zip` packages directly
+- **Manual Creation** — Author Skills with built-in Markdown editor
+- **Smart Search** — Full-text search across all your Skills
+
+### 🏷️ Intelligent Tagging
+
+- **LLM Auto-Tagging** — Automatically generate category tags using AI (OpenAI / Anthropic / Google)
+- **Tag Filtering** — Quick navigation via sidebar tag cloud
+- **Manual Tags** — Add custom tags for personal organization
+
+### ⭐ Curation Tools
+
+- **Star System** — Bookmark your favorite Skills for quick access
+- **Batch Operations** — Select multiple Skills for export or deletion
+- **Trash & Recovery** — 30-day trash bin with auto-cleanup
+
+### 📤 Export Ready
+
+- **One-Click Export** — Download selected Skills as `.zip` for any coding assistant
+- **Portable Format** — Standard Markdown format works everywhere
+
+---
+
+## 🛠️ Tech Stack
+
+### Frontend
+
+[![React](https://img.shields.io/badge/React-19.2-61DAFB?style=flat-square&logo=react)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-7.2-646CFF?style=flat-square&logo=vite)](https://vite.dev/)
+[![React Router](https://img.shields.io/badge/React_Router-7-CA4245?style=flat-square&logo=reactrouter)](https://reactrouter.com/)
+[![React Markdown](https://img.shields.io/badge/React_Markdown-10-000000?style=flat-square)](https://github.com/remarkjs/react-markdown)
+[![Highlight.js](https://img.shields.io/badge/Highlight.js-11-F7DF1E?style=flat-square)](https://highlightjs.org/)
+
+### Backend
+
+[![Express](https://img.shields.io/badge/Express-4.18-000000?style=flat-square&logo=express)](https://expressjs.com/)
+[![Supabase](https://img.shields.io/badge/Supabase-2.90-3FCF8E?style=flat-square&logo=supabase)](https://supabase.com/)
+[![Node Cron](https://img.shields.io/badge/Node_Cron-3-339933?style=flat-square&logo=nodedotjs)](https://github.com/node-cron/node-cron)
+[![Multer](https://img.shields.io/badge/Multer-1.4-FF6600?style=flat-square)](https://github.com/expressjs/multer)
+
+---
+
+## 🏗️ Project Structure
+
+```
+📦 Agent Skills Collection
+├── 📂 client/                 # Frontend (React + Vite)
+│   ├── 📂 src/
+│   │   ├── 📂 components/     # UI Components
+│   │   │   ├── 📂 common/     # Shared components (SearchBar, Modal, etc.)
+│   │   │   ├── 📂 layout/     # Header, Sidebar
+│   │   │   ├── 📂 skills/     # Skill-specific components
+│   │   │   └── 📂 files/      # File explorer
+│   │   ├── 📂 pages/          # Route pages
+│   │   ├── 📂 hooks/          # Custom React hooks
+│   │   ├── 📂 services/       # API client
+│   │   └── 📂 styles/         # Global styles
+│   └── 📄 vite.config.js
+│
+├── 📂 server/                 # Backend (Express)
+│   ├── 📂 src/
+│   │   ├── 📂 routes/         # API endpoints
+│   │   ├── 📂 services/       # Business logic
+│   │   │   ├── 📄 llmService.js        # LLM tag generation
+│   │   │   ├── 📄 supabaseSkillService.js
+│   │   │   └── 📄 trashService.js
+│   │   └── 📂 config/         # Supabase config
+│   └── 📂 data/               # Local data storage
+│
+└── 📄 package.json            # Root scripts
 ```
 
-### 2. 安装依赖
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **Node.js** 18+
+- **npm** or **pnpm**
+- **Supabase** account (for database)
+
+### Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/yourusername/agent-skills-collection.git
+cd agent-skills-collection
+
+# Install all dependencies
 npm run install:all
-```
 
-### 3. 配置环境变量
+# Configure environment
+cp .env.example .env
+# Edit .env with your Supabase and LLM credentials
 
-编辑根目录的 `.env` 文件，填写你的 LLM API 密钥：
-
-```env
-LLM_API_KEY=your-api-key-here  # ← 填写你的密钥
-```
-
-### 4. 启动服务
-
-```bash
+# Start development servers
 npm run dev
 ```
 
-访问 http://localhost:5173
+The app will be available at `http://localhost:5173` (frontend) and `http://localhost:8080` (API).
 
-## 配置说明
+### Environment Variables
 
-### 环境变量
+```bash
+# Supabase
+SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_anon_key
 
-| 变量           | 说明         | 默认值                  |
-| -------------- | ------------ | ----------------------- |
-| `LLM_BASE_URL` | LLM API 地址 | `http://127.0.0.1:8045` |
-| `LLM_API_KEY`  | LLM API 密钥 | **必填**                |
-| `LLM_MODEL`    | 模型名称     | `gemini-3-flash`        |
-| `PORT`         | 后端服务端口 | `8080`                  |
+# LLM Auto-Tagging (Optional)
+LLM_BASE_URL=https://api.anthropic.com  # or openai/google
+LLM_API_KEY=your_api_key
+LLM_MODEL=claude-3-haiku-20240307
 
-### LLM API 要求
-
-本项目使用 **Anthropic Messages API 格式**（`/v1/messages`）。
-
-支持的本地代理：
-
-- [LiteLLM](https://github.com/BerriAI/litellm)
-- [One-API](https://github.com/songquanpeng/one-api)
-- 其他兼容 Anthropic API 格式的服务
-
-## 技术栈
-
-| 层级 | 技术              |
-| ---- | ----------------- |
-| 前端 | React + Vite      |
-| 后端 | Node.js + Express |
-| 数据 | 本地 JSON 文件    |
-
-## 目录结构
-
-```
-├── client/              # 前端应用
-│   └── src/
-│       ├── components/  # React 组件
-│       ├── pages/       # 页面
-│       └── services/    # API 调用
-├── server/              # 后端服务
-│   ├── src/
-│   │   ├── routes/      # API 路由
-│   │   └── services/    # 业务逻辑
-│   └── data/            # 数据存储
-├── .env                 # 环境变量配置（需自行填写 API 密钥）
-└── package.json
+# Admin
+ADMIN_EMAIL=your_email@example.com
 ```
 
-## License
+---
 
-MIT
+## 🗺️ Roadmap
+
+- [x] Core Skill management (upload, view, delete)
+- [x] LLM-powered auto-tagging
+- [x] Tag filtering & search
+- [x] Star & batch operations
+- [x] Trash bin with auto-cleanup
+- [x] Supabase backend integration
+- [ ] 🔐 User authentication & login
+- [ ] 🌐 Cloud deployment (Vercel)
+- [ ] 📱 Mobile-responsive design
+- [ ] 🔄 Import from GitHub repos
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+
+---
+
+<div align="center">
+
+**Crafted for developers who value their AI coding companions**
+
+> "One collection to rule them all, one hub to find them,  
+> One click to export them all, and in the workflow bind them."
+
+[🐛 Report Bug](https://github.com/yourusername/agent-skills-collection/issues) · [✨ Request Feature](https://github.com/yourusername/agent-skills-collection/issues)
+
+</div>
