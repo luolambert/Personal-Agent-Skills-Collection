@@ -206,3 +206,15 @@
   background-color: var(--bg-surface);
   color: var(--text-secondary);
 }
+
+.tags-empty-hint {
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  font-style: italic;
+}
+
+.tags-error {
+  color: var(--color-danger);
+  font-size: 0.75rem;
+  margin-right: 0.5rem;
+}

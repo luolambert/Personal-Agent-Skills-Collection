@@ -36,7 +36,12 @@ export async function generateTags(skillInfo) {
   const existingTags = getTags();
   
   if (!config.apiKey) {
-    console.warn('LLM_API_KEY not set, skipping tag generation');
+    console.warn('[LLM] API key not configured, skipping tag generation');
+    return [];
+  }
+  
+  if (!config.baseUrl) {
+    console.warn('[LLM] API base URL not configured, skipping tag generation');
     return [];
   }
   
@@ -166,7 +171,7 @@ ${skillInfo.contentPreview || '无内容'}
     });
     
     if (!response.ok) {
-      console.error('LLM API error:', response.status);
+      console.warn(`[LLM] API request failed (${response.status}), skipping tag generation`);
       return [];
     }
     
@@ -181,7 +186,7 @@ ${skillInfo.contentPreview || '无内容'}
     
     return [];
   } catch (error) {
-    console.error('Error generating tags:', error);
+    console.warn('[LLM] Failed to generate tags:', error.message);
     return [];
   }
 }

@@ -15,6 +15,7 @@ export default function SkillDetail() {
   const [regenerating, setRegenerating] = useState(false);
   const [editingTags, setEditingTags] = useState(false);
   const [newTag, setNewTag] = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     loadSkill();
@@ -39,11 +40,17 @@ export default function SkillDetail() {
 
   const handleRegenerateTags = async () => {
     setRegenerating(true);
+    setError('');
     try {
       const result = await regenerateTags(id);
-      setSkill(prev => ({ ...prev, tags: result.tags }));
+      if (result.success) {
+        setSkill(prev => ({ ...prev, tags: result.tags }));
+      } else {
+        setError(result.message || '标签生成失败');
+      }
     } catch (err) {
       console.error('Failed to regenerate tags:', err);
+      setError('标签生成失败，请稍后重试');
     } finally {
       setRegenerating(false);
     }
@@ -118,13 +125,19 @@ export default function SkillDetail() {
 
       <div className="detail-tags">
         <div className="tags-list">
-          {skill.tags.map(tag => (
+          {skill.tags.length > 0 ? skill.tags.map(tag => (
             <TagBadge 
               key={tag} 
               tag={tag} 
               onRemove={editingTags ? handleRemoveTag : undefined}
             />
-          ))}
+          )) : (
+            !editingTags && (
+              <span className="tags-empty-hint">
+                暂无标签，点击右侧按钮生成
+              </span>
+            )
+          )}
           
           {editingTags && (
             <div className="tag-input-wrap">
@@ -141,6 +154,7 @@ export default function SkillDetail() {
         </div>
         
         <div className="tags-actions">
+          {error && <div className="tags-error">{error}</div>}
           <button 
             className="btn btn-ghost btn-sm"
             onClick={() => setEditingTags(!editingTags)}
@@ -152,7 +166,7 @@ export default function SkillDetail() {
             onClick={handleRegenerateTags}
             disabled={regenerating}
           >
-            {regenerating ? '生成中...' : '重新生成'}
+            {regenerating ? '生成中...' : (skill.tags.length === 0 ? '生成标签' : '重新生成')}
           </button>
         </div>
       </div>

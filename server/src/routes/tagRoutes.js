@@ -1,12 +1,12 @@
 import express from 'express';
-import { getAllTags, addTag, updateTag, deleteTag } from '../services/tagService.js';
-import { readDB, writeDB } from '../services/fileService.js';
+import { getAllTags, getOrCreateTag, updateTagName, deleteTag } from '../services/supabaseTagService.js';
+import { getAllSkills, updateSkill } from '../services/supabaseSkillService.js';
 
 const router = express.Router();
 
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const tags = getAllTags();
+    const tags = await getAllTags();
     res.json({ tags });
   } catch (error) {
     console.error('Get tags error:', error);
@@ -14,14 +14,15 @@ router.get('/', (req, res) => {
   }
 });
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { name } = req.body;
     if (!name) {
       return res.status(400).json({ error: 'Tag name required' });
     }
     
-    const tags = addTag(name);
+    await getOrCreateTag(name);
+    const tags = await getAllTags();
     res.json({ success: true, tags });
   } catch (error) {
     console.error('Add tag error:', error);
@@ -29,7 +30,7 @@ router.post('/', (req, res) => {
   }
 });
 
-router.put('/:name', (req, res) => {
+router.put('/:name', async (req, res) => {
   try {
     const { newName } = req.body;
     if (!newName) {
@@ -37,17 +38,17 @@ router.put('/:name', (req, res) => {
     }
     
     const oldName = decodeURIComponent(req.params.name);
-    const tags = updateTag(oldName, newName);
+    await updateTagName(oldName, newName);
     
-    const db = readDB();
-    for (const skill of db.skills) {
-      const tagIndex = skill.tags.indexOf(oldName);
-      if (tagIndex !== -1) {
-        skill.tags[tagIndex] = newName;
+    const skills = await getAllSkills();
+    for (const skill of skills) {
+      if (skill.tags.includes(oldName)) {
+        const updatedTags = skill.tags.map(t => t === oldName ? newName : t);
+        await updateSkill(skill.id, { tags: updatedTags });
       }
     }
-    writeDB(db);
     
+    const tags = await getAllTags();
     res.json({ success: true, tags });
   } catch (error) {
     console.error('Update tag error:', error);
@@ -55,17 +56,20 @@ router.put('/:name', (req, res) => {
   }
 });
 
-router.delete('/:name', (req, res) => {
+router.delete('/:name', async (req, res) => {
   try {
     const name = decodeURIComponent(req.params.name);
-    const tags = deleteTag(name);
+    await deleteTag(name);
     
-    const db = readDB();
-    for (const skill of db.skills) {
-      skill.tags = skill.tags.filter(t => t !== name);
+    const skills = await getAllSkills();
+    for (const skill of skills) {
+      if (skill.tags.includes(name)) {
+        const updatedTags = skill.tags.filter(t => t !== name);
+        await updateSkill(skill.id, { tags: updatedTags });
+      }
     }
-    writeDB(db);
     
+    const tags = await getAllTags();
     res.json({ success: true, tags });
   } catch (error) {
     console.error('Delete tag error:', error);
