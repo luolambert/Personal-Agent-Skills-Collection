@@ -9,11 +9,21 @@ const __dirname = dirname(__filename);
 const TAGS_PATH = path.join(__dirname, '../../data/tags.json');
 
 function getConfig() {
+  const baseUrl = process.env.LLM_BASE_URL;
   return {
-    baseUrl: process.env.LLM_BASE_URL || 'http://127.0.0.1:8045',
-    apiKey: process.env.LLM_API_KEY || '',
-    model: process.env.LLM_MODEL || 'gemini-3-flash'
+    baseUrl,
+    apiKey: process.env.LLM_API_KEY,
+    model: process.env.LLM_MODEL,
+    provider: baseUrl ? detectProvider(baseUrl) : null
   };
+}
+
+function detectProvider(url) {
+  const lowerUrl = url.toLowerCase();
+  if (lowerUrl.includes('anthropic')) return 'anthropic';
+  if (lowerUrl.includes('openai') || lowerUrl.includes('openrouter')) return 'openai';
+  if (lowerUrl.includes('googleapis') || lowerUrl.includes('generativelanguage')) return 'google';
+  return 'anthropic';
 }
 
 function getTags() {
@@ -147,23 +157,12 @@ ${skillInfo.contentPreview || '无内容'}
 ["标签1", "标签2", "标签3", "标签4"]`;
 
   try {
-    const response = await fetch(`${config.baseUrl}/v1/messages`, {
+    const { endpoint, headers, body } = buildRequest(config, prompt);
+    
+    const response = await fetch(endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': config.apiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: config.model,
-        max_tokens: 500,
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ]
-      })
+      headers,
+      body: JSON.stringify(body)
     });
     
     if (!response.ok) {
@@ -172,7 +171,7 @@ ${skillInfo.contentPreview || '无内容'}
     }
     
     const data = await response.json();
-    const text = data.content?.[0]?.text || '';
+    const text = extractText(data, config.provider);
     
     const match = text.match(/\[.*?\]/s);
     if (match) {
@@ -184,6 +183,64 @@ ${skillInfo.contentPreview || '无内容'}
   } catch (error) {
     console.error('Error generating tags:', error);
     return [];
+  }
+}
+
+function buildRequest(config, prompt) {
+  const { baseUrl, apiKey, model, provider } = config;
+  
+  switch (provider) {
+    case 'openai':
+      return {
+        endpoint: `${baseUrl}/v1/chat/completions`,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: {
+          model,
+          max_tokens: 500,
+          messages: [{ role: 'user', content: prompt }]
+        }
+      };
+    
+    case 'google':
+      return {
+        endpoint: `${baseUrl}/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        headers: { 'Content-Type': 'application/json' },
+        body: {
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { maxOutputTokens: 500 }
+        }
+      };
+    
+    case 'anthropic':
+    default:
+      return {
+        endpoint: `${baseUrl}/v1/messages`,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01'
+        },
+        body: {
+          model,
+          max_tokens: 500,
+          messages: [{ role: 'user', content: prompt }]
+        }
+      };
+  }
+}
+
+function extractText(data, provider) {
+  switch (provider) {
+    case 'openai':
+      return data.choices?.[0]?.message?.content || '';
+    case 'google':
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    case 'anthropic':
+    default:
+      return data.content?.[0]?.text || '';
   }
 }
 
