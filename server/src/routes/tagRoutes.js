@@ -1,8 +1,19 @@
 import express from 'express';
-import { getAllTags, getOrCreateTag, updateTagName, deleteTag } from '../services/supabaseTagService.js';
+import { getAllTags, getOrCreateTag, updateTagName, deleteTag, cleanupUnusedTags } from '../services/supabaseTagService.js';
 import { getAllSkills, updateSkill } from '../services/supabaseSkillService.js';
 
 const router = express.Router();
+
+router.post('/cleanup', async (req, res) => {
+  try {
+    await cleanupUnusedTags();
+    const tags = await getAllTags();
+    res.json({ success: true, tags });
+  } catch (error) {
+    console.error('Cleanup tags error:', error);
+    res.status(500).json({ error: 'Failed to cleanup tags' });
+  }
+});
 
 router.get('/', async (req, res) => {
   try {

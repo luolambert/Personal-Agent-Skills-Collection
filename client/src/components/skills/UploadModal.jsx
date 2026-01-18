@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import Modal from '../common/Modal';
-import { uploadSkills } from '../../services/api';
+import CircularProgress from '../common/CircularProgress';
+import { uploadSkills, importFromGitHub } from '../../services/api';
 import './UploadZone.css';
 
 const isMacHiddenFile = (filename) => {
@@ -21,6 +22,7 @@ export default function UploadModal({ onClose, onSuccess }) {
   const [mode, setMode] = useState('upload');
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const [progressText, setProgressText] = useState('');
   const [error, setError] = useState(null);
   const fileInputRef = useRef(null);
   
@@ -29,6 +31,8 @@ export default function UploadModal({ onClose, onSuccess }) {
     description: '',
     content: ''
   });
+  
+  const [githubUrl, setGithubUrl] = useState('');
 
   const handleDrop = (e) => {
     e.preventDefault();
@@ -58,15 +62,22 @@ export default function UploadModal({ onClose, onSuccess }) {
     if (files.length === 0) return;
     
     setUploading(true);
+    setProgressText('上传文件中...');
     setError(null);
     
     try {
-      await uploadSkills(files);
+      await uploadSkills(files, (percent, text) => {
+        if (percent < 100) {
+          setProgressText(`上传中 ${percent}%`);
+        } else {
+          setProgressText('处理中，请稍候...');
+        }
+      });
       onSuccess();
     } catch (err) {
       setError(err.message || '上传失败');
-    } finally {
       setUploading(false);
+      setProgressText('');
     }
   };
 
@@ -77,6 +88,7 @@ export default function UploadModal({ onClose, onSuccess }) {
     }
     
     setUploading(true);
+    setProgressText('创建中...');
     setError(null);
     
     try {
@@ -93,25 +105,74 @@ export default function UploadModal({ onClose, onSuccess }) {
       onSuccess();
     } catch (err) {
       setError(err.message || '创建失败');
-    } finally {
       setUploading(false);
+      setProgressText('');
+    }
+  };
+
+  const handleGitHubImport = async () => {
+    if (!githubUrl.trim()) {
+      setError('请输入 GitHub 链接');
+      return;
+    }
+    
+    if (!githubUrl.includes('github.com')) {
+      setError('请输入有效的 GitHub 链接');
+      return;
+    }
+    
+    setUploading(true);
+    setProgressText('开始导入...');
+    setError(null);
+    
+    try {
+      const result = await importFromGitHub(githubUrl, (percent, text) => {
+        setProgressText(text || '处理中...');
+      });
+      if (result.error) {
+        throw new Error(result.message || result.error);
+      }
+      onSuccess();
+    } catch (err) {
+      setError(err.message || '导入失败');
+      setUploading(false);
+      setProgressText('');
     }
   };
 
   return (
     <Modal title="添加 Skills" onClose={onClose}>
+      {uploading && (
+        <div className="upload-overlay">
+          <CircularProgress 
+            progress={null}
+            size="lg" 
+            text={progressText} 
+          />
+        </div>
+      )}
+
       <div className="upload-tabs">
         <button 
           className={`upload-tab ${mode === 'upload' ? 'active' : ''}`}
           onClick={() => setMode('upload')}
+          disabled={uploading}
         >
           上传文件
         </button>
         <button 
           className={`upload-tab ${mode === 'create' ? 'active' : ''}`}
           onClick={() => setMode('create')}
+          disabled={uploading}
         >
           新建文档
+        </button>
+        <button 
+          className={`upload-tab ${mode === 'github' ? 'active' : ''}`}
+          onClick={() => setMode('github')}
+          disabled={uploading}
+        >
+          GitHub 导入
         </button>
       </div>
 
@@ -162,7 +223,7 @@ export default function UploadModal({ onClose, onSuccess }) {
             </div>
           )}
         </>
-      ) : (
+      ) : mode === 'create' ? (
         <div className="create-form">
           <div className="form-group">
             <label className="form-label">名称 *</label>
@@ -197,6 +258,20 @@ export default function UploadModal({ onClose, onSuccess }) {
             />
           </div>
         </div>
+      ) : (
+        <div className="create-form">
+          <div className="form-group">
+            <label className="form-label">GitHub 链接</label>
+            <input
+              type="url"
+              className="form-input"
+              placeholder="https://github.com/user/repo 或 .../tree/main/folder"
+              value={githubUrl}
+              onChange={(e) => setGithubUrl(e.target.value)}
+            />
+          </div>
+          <p className="form-hint">支持仓库、文件夹或单文件链接，将自动过滤 README、LICENSE 等文件</p>
+        </div>
       )}
 
       {error && (
@@ -204,7 +279,7 @@ export default function UploadModal({ onClose, onSuccess }) {
       )}
 
       <div className="upload-actions">
-        <button className="btn btn-secondary" onClick={onClose}>
+        <button className="btn btn-secondary" onClick={onClose} disabled={uploading}>
           取消
         </button>
         {mode === 'upload' ? (
@@ -215,13 +290,21 @@ export default function UploadModal({ onClose, onSuccess }) {
           >
             {uploading ? '上传中...' : '开始上传'}
           </button>
-        ) : (
+        ) : mode === 'create' ? (
           <button 
             className="btn btn-primary" 
             onClick={handleCreate}
             disabled={!newSkill.name.trim() || uploading}
           >
             {uploading ? '创建中...' : '创建 Skill'}
+          </button>
+        ) : (
+          <button 
+            className="btn btn-primary" 
+            onClick={handleGitHubImport}
+            disabled={!githubUrl.trim() || uploading}
+          >
+            {uploading ? '导入中...' : '导入 Skill'}
           </button>
         )}
       </div>

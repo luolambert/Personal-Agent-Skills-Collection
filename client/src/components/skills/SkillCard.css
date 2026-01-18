@@ -126,3 +126,32 @@
   color: var(--text-muted);
   padding: 4px 8px;
 }
+
+.skill-card-badges {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.badge {
+  font-size: 12px;
+  cursor: default;
+}
+
+.badge-github {
+  opacity: 0.7;
+}
+
+.badge-customized {
+  opacity: 0.8;
+}
+
+.badge-update {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+

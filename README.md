@@ -46,6 +46,7 @@ Modern developers often juggle multiple AI-powered coding assistants — Claude 
 ### 📂 Skill Management
 
 - **Upload & Organize** — Import `.md` files or `.zip` packages directly
+- **GitHub Import** — Import Skills directly from any GitHub repository
 - **Manual Creation** — Author Skills with built-in Markdown editor
 - **Smart Search** — Full-text search across all your Skills
 
@@ -65,6 +66,11 @@ Modern developers often juggle multiple AI-powered coding assistants — Claude 
 
 - **One-Click Export** — Download selected Skills as `.zip` for any coding assistant
 - **Portable Format** — Standard Markdown format works everywhere
+
+### 🎨 Enhanced UX
+
+- **Loading Animations** — Visual progress feedback for import/upload operations
+- **Finder-style Explorer** — Navigate Skill file structures with familiar UI
 
 ---
 
@@ -173,10 +179,30 @@ ADMIN_EMAIL=your_email@example.com
 - [x] Star & batch operations
 - [x] Trash bin with auto-cleanup
 - [x] Supabase backend integration
+- [x] 🔄 Import from GitHub repos
 - [ ] 🔐 User authentication & login
 - [ ] 🌐 Cloud deployment (Vercel)
 - [ ] 📱 Mobile-responsive design
-- [ ] 🔄 Import from GitHub repos
+
+---
+
+## 📝 Changelog
+
+### v1.1.0 (2026-01)
+
+- ✨ **GitHub Import** — Import Skills directly from any GitHub repository with automatic file filtering
+- ✨ **Loading Animations** — Circular progress indicator for uploads, step-based progress for GitHub imports
+- ✨ **Enhanced Upload** — Real-time progress tracking for file uploads
+- 🐛 **Trash Display** — Fixed issues with trash page item display
+- 🐛 **Tag Updates** — Fixed tag saving on Skill detail page
+- 🔧 **File Explorer** — Improved breadcrumb navigation and preview modal
+
+### v1.0.0 (2026-01)
+
+- 🎉 Initial release with core Skill management
+- ✨ Supabase backend integration
+- ✨ LLM auto-tagging with multi-provider support
+- ✨ Finder-style file explorer
 
 ---
 

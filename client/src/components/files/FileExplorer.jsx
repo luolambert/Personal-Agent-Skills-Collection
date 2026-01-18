@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { getSkillFile } from '../../services/api';
 import Modal from '../common/Modal';
+import LoadingSpinner from '../common/LoadingSpinner';
 import './FileExplorer.css';
 
 function buildFileTree(files) {
@@ -160,7 +161,7 @@ export default function FileExplorer({ files, skillId }) {
         <Modal title={previewFile.name} onClose={closePreview}>
           <div className="file-preview">
             {loading ? (
-              <div className="preview-loading">加载中...</div>
+              <div className="preview-loading"><LoadingSpinner size="sm" text="" /></div>
             ) : previewContent ? (
               previewFile.ext === 'md' ? (
                 <div className="preview-markdown">

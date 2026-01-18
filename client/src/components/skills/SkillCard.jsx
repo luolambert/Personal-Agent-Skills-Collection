@@ -76,6 +76,20 @@ export default function SkillCard({
           )}
         </div>
       )}
+      
+      {(skill.githubUrl || skill.isCustomized || skill.hasUpdate) && (
+        <div className="skill-card-badges">
+          {skill.githubUrl && (
+            <span className="badge badge-github" title="已绑定 GitHub">🔗</span>
+          )}
+          {skill.isCustomized && (
+            <span className="badge badge-customized" title="Customized">✏️</span>
+          )}
+          {skill.hasUpdate && (
+            <span className="badge badge-update" title="有可用更新">🔄</span>
+          )}
+        </div>
+      )}
     </Link>
   );
 }

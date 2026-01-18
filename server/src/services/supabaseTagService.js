@@ -57,11 +57,7 @@ export async function associateTagsWithSkill(skillId, tagNames) {
   
   if (!tagNames || tagNames.length === 0) return;
   
-  const tagIds = [];
-  for (const name of tagNames) {
-    const tagId = await getOrCreateTag(name);
-    tagIds.push(tagId);
-  }
+  const tagIds = await Promise.all(tagNames.map(name => getOrCreateTag(name)));
   
   const associations = tagIds.map(tagId => ({
     skill_id: skillId,
@@ -86,8 +82,33 @@ export async function getSkillTags(skillId) {
 }
 
 export async function updateTagsFile(newTags) {
-  // Supabase version - ensure all tags exist in database
-  for (const tag of newTags) {
-    await getOrCreateTag(tag);
+  await Promise.all(newTags.map(tag => getOrCreateTag(tag)));
+}
+
+export async function cleanupUnusedTags() {
+  const [tagsResult, skillsResult, associationsResult] = await Promise.all([
+    supabase.from('tags').select('id, name'),
+    supabase.from('skills').select('id').eq('deleted', false),
+    supabase.from('skill_tags').select('tag_id, skill_id')
+  ]);
+  
+  if (tagsResult.error) throw tagsResult.error;
+  if (skillsResult.error) throw skillsResult.error;
+  if (associationsResult.error) throw associationsResult.error;
+  
+  const activeSkillIds = new Set(skillsResult.data.map(s => s.id));
+  
+  const usedTagIds = new Set(
+    associationsResult.data
+      .filter(a => activeSkillIds.has(a.skill_id))
+      .map(a => a.tag_id)
+  );
+  
+  const unusedTagIds = tagsResult.data
+    .filter(t => !usedTagIds.has(t.id))
+    .map(t => t.id);
+  
+  if (unusedTagIds.length > 0) {
+    await supabase.from('tags').delete().in('id', unusedTagIds);
   }
 }

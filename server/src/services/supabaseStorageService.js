@@ -36,10 +36,12 @@ export async function downloadFile(skillId, filePath) {
   return Buffer.from(buffer);
 }
 
-export async function listFiles(skillId) {
+export async function listFiles(skillId, subPath = '') {
+  const listPath = subPath ? `${skillId}/${subPath}` : skillId;
+  
   const { data, error } = await supabase.storage
     .from(BUCKET_NAME)
-    .list(skillId, {
+    .list(listPath, {
       limit: 1000,
       sortBy: { column: 'name', order: 'asc' }
     });
@@ -48,8 +50,15 @@ export async function listFiles(skillId) {
   
   const files = [];
   for (const item of data) {
-    if (item.name) {
-      files.push(item.name);
+    if (!item.name) continue;
+    
+    const relativePath = subPath ? `${subPath}/${item.name}` : item.name;
+    
+    if (item.id === null) {
+      const subFiles = await listFiles(skillId, relativePath);
+      files.push(...subFiles);
+    } else {
+      files.push(relativePath);
     }
   }
   

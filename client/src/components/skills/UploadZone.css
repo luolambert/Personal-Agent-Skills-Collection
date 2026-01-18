@@ -197,3 +197,23 @@
   gap: 12px;
   margin-top: 24px;
 }
+
+.upload-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(var(--bg-surface-rgb, 18, 18, 18), 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: var(--radius-lg);
+}
+
+.form-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+}

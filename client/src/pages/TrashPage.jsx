@@ -4,6 +4,7 @@ import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
 import { getTrash, restoreFromTrash, permanentDelete } from '../services/api';
 import { useTags } from '../hooks/useSkills';
+import LoadingSpinner from '../components/common/LoadingSpinner';
 import './TrashPage.css';
 
 export default function TrashPage() {
@@ -70,7 +71,7 @@ export default function TrashPage() {
         </div>
 
         {loading ? (
-          <div className="loading-state">加载中...</div>
+          <div className="loading-state"><LoadingSpinner /></div>
         ) : items.length === 0 ? (
           <div className="empty-state">
             <svg width="64" height="64" viewBox="0 0 64 64" fill="none">

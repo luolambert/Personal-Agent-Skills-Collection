@@ -1,6 +1,17 @@
 import { supabase } from '../config/supabaseClient.js';
-import { associateTagsWithSkill, getSkillTags } from './supabaseTagService.js';
+import { associateTagsWithSkill, getSkillTags, cleanupUnusedTags } from './supabaseTagService.js';
 import { listFiles } from './supabaseStorageService.js';
+
+function generateStorageFolder(name, id) {
+  const sanitized = name
+    .toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fa5-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .substring(0, 50);
+  const shortId = id.substring(0, 8);
+  return `${sanitized}-${shortId}`;
+}
 
 export async function createSkill(skillData) {
   const { data, error } = await supabase
@@ -11,10 +22,16 @@ export async function createSkill(skillData) {
       description: skillData.description || '',
       type: skillData.type,
       main_file: skillData.mainFile,
+      storage_folder: skillData.storageFolder || generateStorageFolder(skillData.name, skillData.id),
       starred: skillData.starred || false,
       deleted: skillData.deleted || false,
       deleted_at: skillData.deletedAt || null,
-      created_at: skillData.createdAt || new Date().toISOString()
+      created_at: skillData.createdAt || new Date().toISOString(),
+      github_url: skillData.githubUrl || null,
+      github_last_commit: skillData.githubLastCommit || null,
+      github_last_check: skillData.githubLastCheck || null,
+      has_update: skillData.hasUpdate || false,
+      is_customized: skillData.isCustomized || false
     })
     .select()
     .single();
@@ -95,18 +112,38 @@ export async function updateSkill(id, updates) {
   if (updates.starred !== undefined) updateData.starred = updates.starred;
   if (updates.deleted !== undefined) updateData.deleted = updates.deleted;
   if (updates.deletedAt !== undefined) updateData.deleted_at = updates.deletedAt;
+  if (updates.githubUrl !== undefined) updateData.github_url = updates.githubUrl;
+  if (updates.githubLastCommit !== undefined) updateData.github_last_commit = updates.githubLastCommit;
+  if (updates.githubLastCheck !== undefined) updateData.github_last_check = updates.githubLastCheck;
+  if (updates.hasUpdate !== undefined) updateData.has_update = updates.hasUpdate;
+  if (updates.isCustomized !== undefined) updateData.is_customized = updates.isCustomized;
   
-  const { data, error } = await supabase
-    .from('skills')
-    .update(updateData)
-    .eq('id', id)
-    .select()
-    .single();
+  let data;
   
-  if (error) throw error;
+  if (Object.keys(updateData).length > 0) {
+    const result = await supabase
+      .from('skills')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (result.error) throw result.error;
+    data = result.data;
+  } else {
+    const result = await supabase
+      .from('skills')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (result.error) throw result.error;
+    data = result.data;
+  }
   
   if (updates.tags !== undefined) {
     await associateTagsWithSkill(id, updates.tags);
+    await cleanupUnusedTags();
   }
   
   const tags = await getSkillTags(id);
@@ -165,11 +202,41 @@ function formatSkill(dbSkill, tags = [], files = []) {
     description: dbSkill.description,
     type: dbSkill.type,
     mainFile: dbSkill.main_file,
+    storageFolder: dbSkill.storage_folder || dbSkill.id,
     starred: dbSkill.starred,
     deleted: dbSkill.deleted,
     deletedAt: dbSkill.deleted_at,
     createdAt: dbSkill.created_at,
+    githubUrl: dbSkill.github_url,
+    githubLastCommit: dbSkill.github_last_commit,
+    githubLastCheck: dbSkill.github_last_check,
+    hasUpdate: dbSkill.has_update,
+    isCustomized: dbSkill.is_customized,
     tags,
     files: files || []
   };
+}
+
+export async function getSkillsWithGitHub() {
+  const { data, error } = await supabase
+    .from('skills')
+    .select('*')
+    .eq('deleted', false)
+    .not('github_url', 'is', null);
+  
+  if (error) throw error;
+  
+  return data.map(skill => formatSkill(skill));
+}
+
+export async function markSkillsUpdated(ids, hasUpdate = true) {
+  const { error } = await supabase
+    .from('skills')
+    .update({ 
+      has_update: hasUpdate,
+      github_last_check: new Date().toISOString()
+    })
+    .in('id', ids);
+  
+  if (error) throw error;
 }

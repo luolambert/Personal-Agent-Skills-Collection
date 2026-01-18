@@ -5,6 +5,7 @@ import SkillCard from '../components/skills/SkillCard';
 import SearchBar from '../components/common/SearchBar';
 import { useSkills, useTags } from '../hooks/useSkills';
 import { toggleStar, exportSkills, deleteSkill } from '../services/api';
+import LoadingSpinner from '../components/common/LoadingSpinner';
 import './HomePage.css';
 
 export default function HomePage() {
@@ -127,7 +128,7 @@ export default function HomePage() {
         )}
 
         {loading ? (
-          <div className="loading-state">加载中...</div>
+          <div className="loading-state"><LoadingSpinner /></div>
         ) : filteredSkills.length === 0 ? (
           <div className="empty-state">
             <svg width="64" height="64" viewBox="0 0 64 64" fill="none">

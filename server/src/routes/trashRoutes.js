@@ -7,7 +7,14 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const skills = await getDeletedSkills();
-    res.json({ skills });
+    const items = skills.map(skill => {
+      const deletedAt = new Date(skill.deletedAt);
+      const now = new Date();
+      const diffDays = Math.ceil((now - deletedAt) / (1000 * 60 * 60 * 24));
+      const daysRemaining = Math.max(0, 30 - diffDays);
+      return { ...skill, daysRemaining };
+    });
+    res.json({ items });
   } catch (error) {
     console.error('Get trash error:', error);
     res.status(500).json({ error: 'Failed to get trash' });

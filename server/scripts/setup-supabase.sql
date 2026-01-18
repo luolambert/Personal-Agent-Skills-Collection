@@ -13,7 +13,13 @@ CREATE TABLE IF NOT EXISTS skills (
   starred BOOLEAN DEFAULT false,
   deleted BOOLEAN DEFAULT false,
   deleted_at TIMESTAMP WITH TIME ZONE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  storage_folder TEXT,
+  github_url TEXT,
+  github_last_commit TEXT,
+  github_last_check TIMESTAMP WITH TIME ZONE,
+  has_update BOOLEAN DEFAULT false,
+  is_customized BOOLEAN DEFAULT false
 );
 
 -- 2. 创建 tags 表
@@ -46,5 +52,8 @@ CREATE INDEX IF NOT EXISTS idx_skill_tags_tag ON skill_tags(tag_id);
 -- Public: true (允许公开访问)
 
 -- Storage Policies 会自动应用，如果需要自定义，可以在 Storage Settings 中配置
+
+-- 6. 如果是已有数据库，运行以下命令添加新字段
+-- ALTER TABLE skills ADD COLUMN IF NOT EXISTS storage_folder TEXT;
 
 -- 完成！数据库结构已创建
