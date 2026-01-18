@@ -5,9 +5,9 @@ import matter from 'gray-matter';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 import { generateTags } from '../services/llmService.js';
-import { updateTagsFile } from '../services/supabaseTagService.js';
+import { updateTagsFile, cleanupUnusedTags } from '../services/supabaseTagService.js';
 import { createSkill, getSkillById, getAllSkills, updateSkill, deleteSkill, getSkillsWithGitHub, markSkillsUpdated } from '../services/supabaseSkillService.js';
-import { uploadFile, downloadFile } from '../services/supabaseStorageService.js';
+import { uploadFile, downloadFile, deleteAllFiles } from '../services/supabaseStorageService.js';
 import { 
   parseGitHubUrl, 
   getLatestCommit, 
@@ -15,7 +15,10 @@ import {
   extractSkillName, 
   extractDescription,
   detectGitHubLinks,
-  getDefaultBranch
+  getDefaultBranch,
+  getFileTree,
+  getFileContent,
+  buildGitHubFileUrl
 } from '../services/githubService.js';
 
 const router = express.Router();
@@ -237,7 +240,10 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/:id', async (req, res) => {
+// Use regex to only match UUID-like IDs, so static paths like 'import-github-stream' won't match
+const uuidRegex = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+
+router.get(`/:id(${uuidRegex})`, async (req, res) => {
   try {
     const skill = await getSkillById(req.params.id);
     if (!skill) {
@@ -327,12 +333,14 @@ router.post('/:id/regenerate-tags', async (req, res) => {
   }
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete(`/:id(${uuidRegex})`, async (req, res) => {
   try {
     const skill = await deleteSkill(req.params.id);
     if (!skill) {
       return res.status(404).json({ error: 'Skill not found' });
     }
+    
+    await cleanupUnusedTags();
     
     const expireAt = new Date(new Date(skill.deletedAt).getTime() + 30 * 24 * 60 * 60 * 1000);
     res.json({ success: true, message: 'Skill moved to trash', expireAt: expireAt.toISOString() });
@@ -350,22 +358,41 @@ router.post('/export', async (req, res) => {
     }
     
     const zip = new AdmZip();
+    let singleSkillName = null;
     
     for (const skillId of skillIds) {
       const skill = await getSkillById(skillId);
       if (!skill) continue;
       
-      for (const file of skill.files) {
-        const fileBuffer = await downloadFile(skillId, file);
-        zip.addFile(`${skill.name}/${file}`, fileBuffer);
+      if (skillIds.length === 1) {
+        singleSkillName = skill.name;
+      }
+      
+      if (skill.storageMode === 'reference' && skill.githubUrl) {
+        const { owner, repo, path: repoPath, branch: urlBranch } = parseGitHubUrl(skill.githubUrl);
+        const branch = urlBranch || await getDefaultBranch(owner, repo);
+        const files = await downloadAndProcessFiles(owner, repo, repoPath, branch);
+        
+        for (const file of files) {
+          zip.addFile(`${skill.name}/${file.path}`, Buffer.from(file.content));
+        }
+      } else {
+        for (const file of skill.files || []) {
+          const fileBuffer = await downloadFile(skillId, file);
+          zip.addFile(`${skill.name}/${file}`, fileBuffer);
+        }
       }
     }
     
     const zipBuffer = zip.toBuffer();
     
+    const filename = singleSkillName 
+      ? `${singleSkillName.replace(/[\/\\?%*:|"<>]/g, '_')}.zip`
+      : 'skills.zip';
+    
     res.set({
       'Content-Type': 'application/zip',
-      'Content-Disposition': 'attachment; filename="skills.zip"'
+      'Content-Disposition': `attachment; filename="${encodeURIComponent(filename)}"`
     });
     res.send(zipBuffer);
   } catch (error) {
@@ -495,7 +522,7 @@ router.post('/import-github', async (req, res) => {
 });
 
 router.get('/import-github-stream', async (req, res) => {
-  const { url } = req.query;
+  const { url, storageMode = 'local' } = req.query;
   
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -527,46 +554,109 @@ router.get('/import-github-stream', async (req, res) => {
     sendProgress(10, '获取仓库信息...');
     const branch = urlBranch || await getDefaultBranch(owner, repo);
     
-    sendProgress(20, '下载文件...');
-    const files = await downloadAndProcessFiles(owner, repo, repoPath, branch);
-    
-    if (files.length === 0) {
-      return sendError('No valid files found in repository');
-    }
-    
-    sendProgress(50, '处理文件内容...');
     const skillId = uuidv4();
-    
     let skillName = '';
     let skillDescription = '';
     let mainFile = '';
     let contentForTags = '';
+    let fileTree = null;
     
-    const skillMd = files.find(f => f.name === 'SKILL.md' || f.name === 'Skill.md');
-    if (skillMd) {
-      skillName = extractSkillName(skillMd.content) || repo;
-      skillDescription = extractDescription(skillMd.content);
-      mainFile = skillMd.path;
-      contentForTags = skillMd.content;
-    } else {
-      const anyMd = files.find(f => f.name.endsWith('.md'));
-      if (anyMd) {
-        skillName = extractSkillName(anyMd.content) || repo;
-        skillDescription = extractDescription(anyMd.content);
-        mainFile = anyMd.path;
-        contentForTags = anyMd.content;
-      } else {
-        skillName = repo;
-        mainFile = files[0].path;
+    if (storageMode === 'reference') {
+      sendProgress(20, '获取文件树...');
+      fileTree = await getFileTree(owner, repo, repoPath, branch);
+      
+      if (fileTree.length === 0) {
+        return sendError('No valid files found in repository');
       }
-    }
-    
-    sendProgress(60, '上传到存储...');
-    const totalFiles = files.length;
-    for (let i = 0; i < files.length; i++) {
-      await uploadFile(skillId, files[i].path, Buffer.from(files[i].content));
-      const uploadProgress = 60 + Math.round((i + 1) / totalFiles * 20);
-      sendProgress(uploadProgress, `上传文件 (${i + 1}/${totalFiles})...`);
+      
+      sendProgress(50, '提取元数据...');
+      
+      const findSkillMd = (tree, parentPath = '') => {
+        for (const item of tree) {
+          if (item.type === 'file' && (item.name === 'SKILL.md' || item.name === 'Skill.md')) {
+            return parentPath ? `${parentPath}/${item.name}` : item.name;
+          }
+          if (item.type === 'dir' && item.children) {
+            const found = findSkillMd(item.children, parentPath ? `${parentPath}/${item.name}` : item.name);
+            if (found) return found;
+          }
+        }
+        return null;
+      };
+      
+      const skillMdPath = findSkillMd(fileTree);
+      if (skillMdPath) {
+        sendProgress(60, '获取主文件内容...');
+        const fullPath = repoPath ? `${repoPath}/${skillMdPath}` : skillMdPath;
+        const content = await getFileContent(owner, repo, fullPath, branch);
+        skillName = extractSkillName(content) || repo;
+        skillDescription = extractDescription(content);
+        mainFile = skillMdPath;
+        contentForTags = content;
+      } else {
+        const findFirstMd = (tree) => {
+          for (const item of tree) {
+            if (item.type === 'file' && item.name.endsWith('.md')) {
+              return item.path;
+            }
+            if (item.type === 'dir' && item.children) {
+              const found = findFirstMd(item.children);
+              if (found) return found;
+            }
+          }
+          return null;
+        };
+        
+        const mdPath = findFirstMd(fileTree);
+        if (mdPath) {
+          sendProgress(60, '获取主文件内容...');
+          const fullPath = repoPath ? `${repoPath}/${mdPath}` : mdPath;
+          const content = await getFileContent(owner, repo, fullPath, branch);
+          skillName = extractSkillName(content) || repo;
+          skillDescription = extractDescription(content);
+          mainFile = mdPath;
+          contentForTags = content;
+        } else {
+          skillName = repo;
+          mainFile = fileTree[0]?.path || '';
+        }
+      }
+    } else {
+      sendProgress(20, '下载文件...');
+      const files = await downloadAndProcessFiles(owner, repo, repoPath, branch);
+      
+      if (files.length === 0) {
+        return sendError('No valid files found in repository');
+      }
+      
+      sendProgress(50, '处理文件内容...');
+      
+      const skillMd = files.find(f => f.name === 'SKILL.md' || f.name === 'Skill.md');
+      if (skillMd) {
+        skillName = extractSkillName(skillMd.content) || repo;
+        skillDescription = extractDescription(skillMd.content);
+        mainFile = skillMd.path;
+        contentForTags = skillMd.content;
+      } else {
+        const anyMd = files.find(f => f.name.endsWith('.md'));
+        if (anyMd) {
+          skillName = extractSkillName(anyMd.content) || repo;
+          skillDescription = extractDescription(anyMd.content);
+          mainFile = anyMd.path;
+          contentForTags = anyMd.content;
+        } else {
+          skillName = repo;
+          mainFile = files[0].path;
+        }
+      }
+      
+      sendProgress(60, '上传到存储...');
+      const totalFiles = files.length;
+      for (let i = 0; i < files.length; i++) {
+        await uploadFile(skillId, files[i].path, Buffer.from(files[i].content));
+        const uploadProgress = 60 + Math.round((i + 1) / totalFiles * 20);
+        sendProgress(uploadProgress, `上传文件 (${i + 1}/${totalFiles})...`);
+      }
     }
     
     sendProgress(85, '生成标签...');
@@ -577,7 +667,7 @@ router.get('/import-github-stream', async (req, res) => {
       name: skillName,
       description: skillDescription,
       tags: [],
-      type: files.length > 1 ? 'folder' : 'md',
+      type: 'folder',
       mainFile,
       starred: false,
       deleted: false,
@@ -587,7 +677,9 @@ router.get('/import-github-stream', async (req, res) => {
       githubLastCommit: latestCommit,
       githubLastCheck: new Date().toISOString(),
       hasUpdate: false,
-      isCustomized: false
+      isCustomized: false,
+      storageMode,
+      githubFileTree: storageMode === 'reference' ? fileTree : null
     };
     
     const tags = await generateTags({
@@ -769,6 +861,123 @@ router.post('/:id/detect-links', async (req, res) => {
   } catch (error) {
     console.error('Detect links error:', error);
     res.status(500).json({ error: 'Failed to detect links' });
+  }
+});
+
+router.post('/:id/convert-mode', async (req, res) => {
+  try {
+    const { targetMode } = req.body;
+    
+    if (!['local', 'reference'].includes(targetMode)) {
+      return res.status(400).json({ error: 'Invalid target mode. Must be "local" or "reference"' });
+    }
+    
+    const skill = await getSkillById(req.params.id);
+    if (!skill) {
+      return res.status(404).json({ error: 'Skill not found' });
+    }
+    
+    if (skill.storageMode === targetMode) {
+      return res.json({ success: true, message: 'Already in target mode', skill });
+    }
+    
+    if (targetMode === 'local') {
+      if (!skill.githubUrl) {
+        return res.status(400).json({ error: 'Cannot convert to local mode: no GitHub URL bound' });
+      }
+      
+      console.log('[Convert Mode] Converting to local mode...');
+      const { owner, repo, path: repoPath, branch: urlBranch } = parseGitHubUrl(skill.githubUrl);
+      const branch = urlBranch || await getDefaultBranch(owner, repo);
+      
+      const files = await downloadAndProcessFiles(owner, repo, repoPath, branch);
+      
+      if (files.length === 0) {
+        return res.status(400).json({ error: 'No valid files found in GitHub repository' });
+      }
+      
+      for (const file of files) {
+        await uploadFile(skill.id, file.path, Buffer.from(file.content));
+      }
+      
+      const latestCommit = await getLatestCommit(owner, repo, repoPath, branch);
+      
+      const updated = await updateSkill(req.params.id, {
+        storageMode: 'local',
+        githubFileTree: null,
+        githubLastCommit: latestCommit,
+        githubLastCheck: new Date().toISOString(),
+        hasUpdate: false
+      });
+      
+      console.log('[Convert Mode] Successfully converted to local mode');
+      res.json({ success: true, skill: updated });
+      
+    } else {
+      if (!skill.githubUrl) {
+        return res.status(400).json({ error: 'Cannot convert to reference mode: no GitHub URL bound' });
+      }
+      
+      console.log('[Convert Mode] Converting to reference mode...');
+      const { owner, repo, path: repoPath, branch: urlBranch } = parseGitHubUrl(skill.githubUrl);
+      const branch = urlBranch || await getDefaultBranch(owner, repo);
+      
+      const fileTree = await getFileTree(owner, repo, repoPath, branch);
+      const latestCommit = await getLatestCommit(owner, repo, repoPath, branch);
+      
+      await deleteAllFiles(skill.id);
+      
+      const updated = await updateSkill(req.params.id, {
+        storageMode: 'reference',
+        githubFileTree: fileTree,
+        githubLastCommit: latestCommit,
+        githubLastCheck: new Date().toISOString(),
+        hasUpdate: false
+      });
+      
+      console.log('[Convert Mode] Successfully converted to reference mode');
+      res.json({ success: true, skill: updated });
+    }
+  } catch (error) {
+    console.error('Convert mode error:', error);
+    res.status(500).json({ error: 'Failed to convert storage mode', message: error.message });
+  }
+});
+
+router.get('/:id/github-file', async (req, res) => {
+  try {
+    const { path: filePath } = req.query;
+    
+    if (!filePath) {
+      return res.status(400).json({ error: 'File path is required' });
+    }
+    
+    const skill = await getSkillById(req.params.id);
+    if (!skill) {
+      return res.status(404).json({ error: 'Skill not found' });
+    }
+    
+    if (!skill.githubUrl) {
+      return res.status(400).json({ error: 'Skill has no GitHub binding' });
+    }
+    
+    const { owner, repo, path: repoPath, branch: urlBranch } = parseGitHubUrl(skill.githubUrl);
+    const branch = urlBranch || await getDefaultBranch(owner, repo);
+    
+    const fullPath = repoPath ? `${repoPath}/${filePath}` : filePath;
+    const content = await getFileContent(owner, repo, fullPath, branch);
+    
+    const githubViewUrl = buildGitHubFileUrl(skill.githubUrl, filePath);
+    
+    res.json({
+      content,
+      name: path.basename(filePath),
+      ext: path.extname(filePath),
+      githubUrl: githubViewUrl
+    });
+  } catch (error) {
+    console.error('Get GitHub file error:', error);
+    res.status(500).json({ error: 'Failed to get file from GitHub', message: error.message });
   }
 });
 

@@ -138,6 +138,58 @@ export async function downloadAndProcessFiles(owner, repo, path = '', branch = '
   return files;
 }
 
+export async function getFileTree(owner, repo, path = '', branch = 'main', basePath = null) {
+  if (basePath === null) {
+    basePath = path;
+  }
+  
+  const contents = await getRepoContents(owner, repo, path, branch);
+  const tree = [];
+  
+  const items = Array.isArray(contents) ? contents : [contents];
+  
+  for (const item of items) {
+    let relativePath;
+    if (basePath === '') {
+      relativePath = item.path;
+    } else {
+      relativePath = item.path.startsWith(basePath + '/') 
+        ? item.path.slice(basePath.length + 1) 
+        : item.path;
+    }
+    
+    if (shouldExclude(relativePath) || shouldExclude(item.name)) {
+      continue;
+    }
+    
+    if (item.type === 'file') {
+      tree.push({
+        name: item.name,
+        path: relativePath,
+        type: 'file',
+        size: item.size
+      });
+    } else if (item.type === 'dir') {
+      const subTree = await getFileTree(owner, repo, item.path, branch, basePath);
+      tree.push({
+        name: item.name,
+        path: relativePath,
+        type: 'dir',
+        children: subTree
+      });
+    }
+  }
+  
+  return tree;
+}
+
+export function buildGitHubFileUrl(githubUrl, filePath) {
+  const { owner, repo, branch, path: basePath } = parseGitHubUrl(githubUrl);
+  const fullPath = basePath ? `${basePath}/${filePath}` : filePath;
+  const branchRef = branch || 'main';
+  return `https://github.com/${owner}/${repo}/blob/${branchRef}/${fullPath}`;
+}
+
 export function extractSkillName(content) {
   const frontmatterMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
   

@@ -19,7 +19,9 @@ CREATE TABLE IF NOT EXISTS skills (
   github_last_commit TEXT,
   github_last_check TIMESTAMP WITH TIME ZONE,
   has_update BOOLEAN DEFAULT false,
-  is_customized BOOLEAN DEFAULT false
+  is_customized BOOLEAN DEFAULT false,
+  storage_mode TEXT DEFAULT 'local' CHECK (storage_mode IN ('local', 'reference')),
+  github_file_tree JSONB
 );
 
 -- 2. 创建 tags 表
@@ -55,5 +57,7 @@ CREATE INDEX IF NOT EXISTS idx_skill_tags_tag ON skill_tags(tag_id);
 
 -- 6. 如果是已有数据库，运行以下命令添加新字段
 -- ALTER TABLE skills ADD COLUMN IF NOT EXISTS storage_folder TEXT;
+-- ALTER TABLE skills ADD COLUMN IF NOT EXISTS storage_mode TEXT DEFAULT 'local' CHECK (storage_mode IN ('local', 'reference'));
+-- ALTER TABLE skills ADD COLUMN IF NOT EXISTS github_file_tree JSONB;
 
 -- 完成！数据库结构已创建

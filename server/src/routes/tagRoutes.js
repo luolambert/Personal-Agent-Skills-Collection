@@ -17,6 +17,7 @@ router.post('/cleanup', async (req, res) => {
 
 router.get('/', async (req, res) => {
   try {
+    await cleanupUnusedTags();
     const tags = await getAllTags();
     res.json({ tags });
   } catch (error) {

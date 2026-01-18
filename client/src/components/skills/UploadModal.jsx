@@ -33,6 +33,7 @@ export default function UploadModal({ onClose, onSuccess }) {
   });
   
   const [githubUrl, setGithubUrl] = useState('');
+  const [storageMode, setStorageMode] = useState('local');
 
   const handleDrop = (e) => {
     e.preventDefault();
@@ -126,7 +127,7 @@ export default function UploadModal({ onClose, onSuccess }) {
     setError(null);
     
     try {
-      const result = await importFromGitHub(githubUrl, (percent, text) => {
+      const result = await importFromGitHub(githubUrl, storageMode, (percent, text) => {
         setProgressText(text || '处理中...');
       });
       if (result.error) {
@@ -271,6 +272,38 @@ export default function UploadModal({ onClose, onSuccess }) {
             />
           </div>
           <p className="form-hint">支持仓库、文件夹或单文件链接，将自动过滤 README、LICENSE 等文件</p>
+          
+          <div className="form-group" style={{ marginTop: '16px' }}>
+            <label className="form-label">存储模式</label>
+            <div className="storage-mode-options">
+              <label className="storage-mode-option">
+                <input
+                  type="radio"
+                  name="storageMode"
+                  value="local"
+                  checked={storageMode === 'local'}
+                  onChange={(e) => setStorageMode(e.target.value)}
+                />
+                <div className="option-content">
+                  <span className="option-title">💾 本地模式</span>
+                  <span className="option-desc">完整下载文件，支持编辑</span>
+                </div>
+              </label>
+              <label className="storage-mode-option">
+                <input
+                  type="radio"
+                  name="storageMode"
+                  value="reference"
+                  checked={storageMode === 'reference'}
+                  onChange={(e) => setStorageMode(e.target.value)}
+                />
+                <div className="option-content">
+                  <span className="option-title">📎 引用模式</span>
+                  <span className="option-desc">只读，跳转 GitHub 查看</span>
+                </div>
+              </label>
+            </div>
+          </div>
         </div>
       )}
 

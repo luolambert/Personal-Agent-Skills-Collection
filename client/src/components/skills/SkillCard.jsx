@@ -77,9 +77,12 @@ export default function SkillCard({
         </div>
       )}
       
-      {(skill.githubUrl || skill.isCustomized || skill.hasUpdate) && (
+      {(skill.githubUrl || skill.isCustomized || skill.hasUpdate || skill.storageMode === 'reference') && (
         <div className="skill-card-badges">
-          {skill.githubUrl && (
+          {skill.storageMode === 'reference' && (
+            <span className="badge badge-reference" title="引用模式">📎</span>
+          )}
+          {skill.githubUrl && skill.storageMode !== 'reference' && (
             <span className="badge badge-github" title="已绑定 GitHub">🔗</span>
           )}
           {skill.isCustomized && (

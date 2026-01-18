@@ -158,13 +158,13 @@ export async function getSkillFile(skillId, filePath) {
   return response.json();
 }
 
-export function importFromGitHub(url, onProgress = null) {
+export function importFromGitHub(url, storageMode = 'local', onProgress = null) {
   return new Promise((resolve, reject) => {
     if (!onProgress) {
       fetch(`${API_BASE}/skills/import-github`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url })
+        body: JSON.stringify({ url, storageMode })
       })
         .then(res => res.json())
         .then(resolve)
@@ -173,7 +173,7 @@ export function importFromGitHub(url, onProgress = null) {
     }
 
     const eventSource = new EventSource(
-      `${API_BASE}/skills/import-github-stream?url=${encodeURIComponent(url)}`
+      `${API_BASE}/skills/import-github-stream?url=${encodeURIComponent(url)}&storageMode=${storageMode}`
     );
 
     eventSource.onmessage = (event) => {
@@ -244,5 +244,20 @@ export async function detectGitHubLinks(skillId) {
   const response = await fetch(`${API_BASE}/skills/${skillId}/detect-links`, {
     method: 'POST'
   });
+  return response.json();
+}
+
+export async function convertStorageMode(skillId, targetMode) {
+  const response = await fetch(`${API_BASE}/skills/${skillId}/convert-mode`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ targetMode })
+  });
+  return response.json();
+}
+
+export async function getGitHubFileContent(skillId, filePath) {
+  const response = await fetch(`${API_BASE}/skills/${skillId}/github-file?path=${encodeURIComponent(filePath)}`);
+  if (!response.ok) return null;
   return response.json();
 }

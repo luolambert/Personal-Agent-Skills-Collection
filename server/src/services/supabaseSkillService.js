@@ -31,7 +31,9 @@ export async function createSkill(skillData) {
       github_last_commit: skillData.githubLastCommit || null,
       github_last_check: skillData.githubLastCheck || null,
       has_update: skillData.hasUpdate || false,
-      is_customized: skillData.isCustomized || false
+      is_customized: skillData.isCustomized || false,
+      storage_mode: skillData.storageMode || 'local',
+      github_file_tree: skillData.githubFileTree || null
     })
     .select()
     .single();
@@ -117,6 +119,8 @@ export async function updateSkill(id, updates) {
   if (updates.githubLastCheck !== undefined) updateData.github_last_check = updates.githubLastCheck;
   if (updates.hasUpdate !== undefined) updateData.has_update = updates.hasUpdate;
   if (updates.isCustomized !== undefined) updateData.is_customized = updates.isCustomized;
+  if (updates.storageMode !== undefined) updateData.storage_mode = updates.storageMode;
+  if (updates.githubFileTree !== undefined) updateData.github_file_tree = updates.githubFileTree;
   
   let data;
   
@@ -212,6 +216,8 @@ function formatSkill(dbSkill, tags = [], files = []) {
     githubLastCheck: dbSkill.github_last_check,
     hasUpdate: dbSkill.has_update,
     isCustomized: dbSkill.is_customized,
+    storageMode: dbSkill.storage_mode || 'local',
+    githubFileTree: dbSkill.github_file_tree,
     tags,
     files: files || []
   };

@@ -4,7 +4,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { 
   getSkill, toggleStar, updateSkillTags, regenerateTags, deleteSkill,
-  bindGitHub, unbindGitHub, checkGitHubUpdate, syncGitHub, toggleCustomized, detectGitHubLinks
+  bindGitHub, unbindGitHub, checkGitHubUpdate, syncGitHub, toggleCustomized, detectGitHubLinks,
+  convertStorageMode
 } from '../../services/api';
 import TagBadge from '../common/TagBadge';
 import FileExplorer from '../files/FileExplorer';
@@ -25,6 +26,7 @@ export default function SkillDetail() {
   const [bindUrl, setBindUrl] = useState('');
   const [githubLoading, setGithubLoading] = useState(false);
   const [detectedLinks, setDetectedLinks] = useState([]);
+  const [convertLoading, setConvertLoading] = useState(false);
 
   useEffect(() => {
     loadSkill();
@@ -184,6 +186,30 @@ export default function SkillDetail() {
     }
   };
 
+  const handleConvertMode = async (targetMode) => {
+    const message = targetMode === 'local' 
+      ? '确定转换为本地模式吗？这将下载所有文件到本地存储。'
+      : '确定转换为引用模式吗？本地文件将被删除，Skill 将变为只读。';
+    
+    if (!confirm(message)) return;
+    
+    setConvertLoading(true);
+    setError('');
+    try {
+      const result = await convertStorageMode(id, targetMode);
+      if (result.success) {
+        setSkill(prev => ({ ...prev, ...result.skill }));
+        loadSkill();
+      } else {
+        setError(result.message || '转换失败');
+      }
+    } catch (err) {
+      setError(err.message || '转换失败');
+    } finally {
+      setConvertLoading(false);
+    }
+  };
+
   if (loading) {
     return <div className="detail-loading"><LoadingSpinner text="加载 Skill..." /></div>;
   }
@@ -276,8 +302,14 @@ export default function SkillDetail() {
         </div>
       </div>
 
-      {skill.files && skill.files.length > 1 && (
-        <FileExplorer files={skill.files} skillId={skill.id} />
+      {((skill.files && skill.files.length > 1) || (skill.storageMode === 'reference' && skill.githubFileTree)) && (
+        <FileExplorer 
+          files={skill.files} 
+          skillId={skill.id} 
+          storageMode={skill.storageMode}
+          githubFileTree={skill.githubFileTree}
+          githubUrl={skill.githubUrl}
+        />
       )}
 
       {/* GitHub 来源卡片 */}
@@ -289,7 +321,7 @@ export default function SkillDetail() {
               <button className="btn btn-ghost btn-sm" onClick={() => { setBindUrl(skill.githubUrl); setShowBindModal(true); }}>
                 编辑
               </button>
-              <button className="btn btn-ghost btn-sm" onClick={handleUnbindGitHub} disabled={githubLoading}>
+              <button className="btn btn-ghost btn-sm" onClick={handleUnbindGitHub} disabled={githubLoading || skill.storageMode === 'reference'}>
                 解绑
               </button>
             </div>
@@ -298,9 +330,40 @@ export default function SkillDetail() {
         
         {skill.githubUrl ? (
           <div className="github-info">
+            {/* 存储模式显示 */}
+            <div className="storage-mode-info">
+              <span className="mode-label">存储模式：</span>
+              {skill.storageMode === 'reference' ? (
+                <span className="mode-badge mode-reference">📎 引用模式（只读）</span>
+              ) : (
+                <span className="mode-badge mode-local">💾 本地模式</span>
+              )}
+            </div>
+
             <a href={skill.githubUrl} target="_blank" rel="noopener noreferrer" className="github-url">
               {skill.githubUrl}
             </a>
+            
+            {/* 模式转换按钮 */}
+            <div className="mode-convert-section">
+              {skill.storageMode === 'reference' ? (
+                <button 
+                  className="btn btn-primary btn-sm" 
+                  onClick={() => handleConvertMode('local')}
+                  disabled={convertLoading}
+                >
+                  {convertLoading ? '转换中...' : '💾 转为本地模式'}
+                </button>
+              ) : (
+                <button 
+                  className="btn btn-ghost btn-sm" 
+                  onClick={() => handleConvertMode('reference')}
+                  disabled={convertLoading}
+                >
+                  {convertLoading ? '转换中...' : '📎 转为引用模式'}
+                </button>
+              )}
+            </div>
             
             {skill.hasUpdate ? (
               <div className="update-available">

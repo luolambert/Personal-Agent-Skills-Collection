@@ -410,3 +410,40 @@
   gap: 8px;
   margin-top: 16px;
 }
+
+/* 存储模式 */
+.storage-mode-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.storage-mode-info .mode-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.storage-mode-info .mode-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.storage-mode-info .mode-local {
+  background-color: rgba(34, 197, 94, 0.15);
+  color: var(--color-success, #22c55e);
+}
+
+.storage-mode-info .mode-reference {
+  background-color: rgba(168, 85, 247, 0.15);
+  color: #a855f7;
+}
+
+.mode-convert-section {
+  padding-top: 4px;
+}
